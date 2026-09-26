@@ -104,6 +104,43 @@ public class Canvas{
 		return colors;
 	}
 
+	// Colors that are easy to tell apart; they are used first by palette(n)
+	private static final String[] PREFERRED = {
+		"red", "blue", "lime", "yellow", "orange", "purple", "cyan", "magenta",
+		"saddlebrown", "black", "pink", "gray", "navy", "olive", "teal", "maroon",
+		"gold", "darkgreen", "skyblue", "salmon", "indigo", "khaki", "crimson", "lavender"
+	};
+
+	/**
+	 * Return the number of visually different CSS colors available.
+	 * (Extension for the slotMachine project)
+	 * @return number of CSS colors with different RGB value
+	 */
+	public static int paletteSize(){
+		return new HashSet<Integer>(CSS_COLORS.values()).size();
+	}
+
+	/**
+	 * Return n CSS color names with different RGB values. Easy to tell apart
+	 * colors are returned first. (Extension for the slotMachine project)
+	 * @param n number of colors (0 <= n <= paletteSize())
+	 * @return color names
+	 */
+	public static String[] palette(int n){
+		ArrayList<String> names = new ArrayList<String>(Arrays.asList(PREFERRED));
+		ArrayList<String> others = new ArrayList<String>(CSS_COLORS.keySet());
+		Collections.sort(others);
+		names.addAll(others);
+		ArrayList<String> result = new ArrayList<String>();
+		HashSet<Integer> used = new HashSet<Integer>();
+		for(int i = 0; i < names.size() && result.size() < n; i++) {
+			if(used.add(CSS_COLORS.get(names.get(i)))) {
+				result.add(names.get(i));
+			}
+		}
+		return result.toArray(new String[0]);
+	}
+
 	//  ----- instance part -----
 
     private JFrame frame;

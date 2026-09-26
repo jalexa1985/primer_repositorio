@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Random;
@@ -12,19 +13,20 @@ import javax.swing.JOptionPane;
  * si es mayor al numero maximo de elementos se usa el maximo.
  *
  * @author (sus nombres)
- * @version Ciclo 2 - 2026-2
+ * @version Ciclo 3 - 2026-2
  */
 public class SlotMachine {
     private static final int X = 20;
     private static final int Y = 20;
     private static final int GAP = 12;
-    private static final int STEP_DELAY = 300;
+    private static final int STEP_DELAY = 150;
     private static final String BODY_COLOR = "darkslategray";
     private static final String JACKPOT_COLOR = "gold";
 
     private ArrayList<Wheel> wheels;
     private ArrayList<String> symbols;
     private Rectangle body;
+    private String bodyColor;
     private boolean isVisible;
     private boolean ok;
     private Random random;
@@ -39,6 +41,38 @@ public class SlotMachine {
         random = new Random();
         isVisible = false;
         ok = true;
+    }
+
+    /**
+     * Crea una maquina de n ruedas y n simbolos (colores diferentes),
+     * inicializada aleatoriamente: cada rueda tiene los n simbolos en un orden
+     * aleatorio y muestra un simbolo aleatorio. La maquina queda invisible.
+     * Si n no esta entre 1 y maxSymbols(), la maquina queda vacia y ok() es false.
+     * @param n numero de ruedas y de simbolos
+     */
+    public SlotMachine(int n) {
+        this();
+        if (n < 1 || n > maxSymbols()) {
+            ok = false;
+            return;
+        }
+        symbols.addAll(Arrays.asList(Canvas.palette(n)));
+        for (int i = 0; i < n; i++) {
+            ArrayList<String> order = new ArrayList<String>(symbols);
+            Collections.shuffle(order, random);
+            Wheel w = new Wheel(order);
+            w.rotate(random.nextInt(n));
+            wheels.add(w);
+        }
+    }
+
+    /**
+     * Retorna el maximo numero de simbolos (colores diferentes) que puede tener
+     * una maquina creada con SlotMachine(n).
+     * @return maximo numero de simbolos
+     */
+    public static int maxSymbols() {
+        return Canvas.paletteSize();
     }
 
     // ------------------------- manage wheels -------------------------
@@ -180,7 +214,7 @@ public class SlotMachine {
             return;
         }
         wheelAt(wheel).place(s);
-        success();
+        moved();
     }
 
     /**
@@ -192,7 +226,7 @@ public class SlotMachine {
             return;
         }
         wheelAt(wheel).rotate(random.nextInt(symbols.size()));
-        success();
+        moved();
     }
 
     /**
@@ -216,7 +250,7 @@ public class SlotMachine {
                 Canvas.getCanvas().wait(STEP_DELAY);
             }
         }
-        success();
+        moved();
     }
 
     /**
@@ -244,7 +278,7 @@ public class SlotMachine {
         for (int i = 0; i < setSymbols.length; i++) {
             wheels.get(i).place(normalize(setSymbols[i]));
         }
-        success();
+        moved();
     }
 
     /**
@@ -260,13 +294,15 @@ public class SlotMachine {
                 w.rotate(random.nextInt(symbols.size()));
             }
         }
-        success();
+        moved();
     }
 
     // ------------------------- consult symbols -------------------------
 
     /**
-     * Retorna los colores de los simbolos en el orden en que estan en la rueda.
+     * Retorna los colores de los simbolos en el orden en que estan en la rueda
+     * (en una maquina creada con SlotMachine(n) cada rueda tiene su propio
+     * orden; se retorna el orden en que se crearon los simbolos).
      * @return simbolos de la maquina
      */
     public String[] symbols() {
@@ -397,6 +433,24 @@ public class SlotMachine {
     }
 
     /*
+     * Registra que un giro fue exitoso. Las ruedas ya se actualizaron solas;
+     * la maquina completa solo se redibuja si cambia el estado ganador.
+     */
+    private void moved() {
+        ok = true;
+        if (isVisible && !currentBodyColor().equals(bodyColor)) {
+            redraw();
+        }
+    }
+
+    /*
+     * Retorna el color que debe tener el cuerpo segun el estado ganador.
+     */
+    private String currentBodyColor() {
+        return isJackpot() ? JACKPOT_COLOR : BODY_COLOR;
+    }
+
+    /*
      * Registra que la operacion fallo y avisa al usuario si esta visible.
      */
     private void fail(String message) {
@@ -417,7 +471,8 @@ public class SlotMachine {
         erase();
         int n = Math.max(wheels.size(), 1);
         body.changeSize(Wheel.HEIGHT + 60, n * (Wheel.WIDTH + GAP) + GAP);
-        body.changeColor(isJackpot() ? JACKPOT_COLOR : BODY_COLOR);
+        bodyColor = currentBodyColor();
+        body.changeColor(bodyColor);
         body.moveTo(X, Y);
         body.makeVisible();
         for (int i = 0; i < wheels.size(); i++) {
